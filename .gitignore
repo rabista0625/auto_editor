@@ -1,0 +1,26 @@
+# 動画ファイル
+input/
+output/
+temp/
+
+# ログ
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# 環境変数
+.env
+.env.*
+
+# エディタ
+.vscode/
+.idea/
+*.swp

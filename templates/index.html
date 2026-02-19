@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto Editor — 無音カット</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="logo">🎮 Auto Editor</h1>
+      <p class="tagline">ゲーム実況動画の無音区間を自動カット</p>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="card">
+
+      <!-- ファイル選択 -->
+      <section class="section">
+        <h2 class="section-title">動画ファイル</h2>
+        <label class="file-label" id="file-label">
+          <input type="file" id="file-input" accept=".mp4,.mov,.avi,.mkv,.webm,.flv,.ts,.m4v" />
+          <span class="file-icon">📁</span>
+          <span class="file-text" id="file-text">クリックまたはドラッグ＆ドロップ</span>
+        </label>
+        <p class="file-hint">対応形式: mp4, mov, avi, mkv, webm, flv, ts, m4v</p>
+      </section>
+
+      <!-- モード選択 -->
+      <section class="section">
+        <h2 class="section-title">カットモード</h2>
+        <div class="mode-grid">
+          <label class="mode-card" id="mode-card-a">
+            <input type="radio" name="mode" value="A" />
+            <div class="mode-card-inner">
+              <span class="mode-badge mode-a">Mode A</span>
+              <p class="mode-desc">すべての無音を削除</p>
+              <span class="mode-usecase mode-usecase-a">✂️ 切り抜き・ショート向き</span>
+            </div>
+          </label>
+          <label class="mode-card" id="mode-card-b">
+            <input type="radio" name="mode" value="B" checked />
+            <div class="mode-card-inner">
+              <span class="mode-badge mode-b">Mode B</span>
+              <p class="mode-desc">閾値以上の無音を削除<br /><small>（デフォルト・おすすめ）</small></p>
+              <span class="mode-usecase mode-usecase-b">🎮 実況本編向き</span>
+            </div>
+          </label>
+          <label class="mode-card" id="mode-card-c">
+            <input type="radio" name="mode" value="C" />
+            <div class="mode-card-inner">
+              <span class="mode-badge mode-c">Mode C</span>
+              <p class="mode-desc">テンポ改善<br /><small>（短い間を自然に保持）</small></p>
+              <span class="mode-usecase mode-usecase-c">🎬 編集済み風動画向き</span>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- パラメータ -->
+      <section class="section">
+        <h2 class="section-title">パラメータ設定</h2>
+        <div class="params-grid">
+          <!-- threshold: Mode B のみ -->
+          <div class="param-row" data-modes="B" id="threshold-row">
+            <label class="param-label" for="threshold">
+              無音閾値 (秒)
+              <span class="param-hint">この秒数以上の無音を削除</span>
+            </label>
+            <input class="param-input" type="number" id="threshold"
+              value="2.0" min="0.1" max="600" step="0.1" />
+          </div>
+          <!-- pre_buffer: Mode A / B のみ -->
+          <div class="param-row" data-modes="A B" id="pre-buffer-row">
+            <label class="param-label" for="pre-buffer">
+              発話前バッファ (秒)
+              <span class="param-hint">発話開始前に残す余白</span>
+            </label>
+            <input class="param-input" type="number" id="pre-buffer"
+              value="0.2" min="0" max="5" step="0.05" />
+          </div>
+          <!-- post_buffer: Mode A / B のみ -->
+          <div class="param-row" data-modes="A B" id="post-buffer-row">
+            <label class="param-label" for="post-buffer">
+              発話後バッファ (秒)
+              <span class="param-hint">発話終了後に残す余白</span>
+            </label>
+            <input class="param-input" type="number" id="post-buffer"
+              value="0.3" min="0" max="5" step="0.05" />
+          </div>
+          <!-- vad_level: 全モード共通 -->
+          <div class="param-row" data-modes="A B C" id="vad-level-row">
+            <label class="param-label" for="vad-level">
+              VAD 感度
+              <span class="param-hint">0=寛容 〜 3=厳格</span>
+            </label>
+            <select class="param-input param-select" id="vad-level">
+              <option value="0">0 — 寛容（ノイズを多く発話と判定）</option>
+              <option value="1">1 — やや寛容</option>
+              <option value="2" selected>2 — 標準（推奨）</option>
+              <option value="3">3 — 厳格（無音認識しやすい）</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Mode C 固定ルール説明 -->
+        <div class="mode-c-note" id="mode-c-note" hidden>
+          <p>🎵 テンポ改善モードの固定ルール:</p>
+          <ul>
+            <li>無音 <strong>0.3秒未満</strong> → そのまま保持（自然な間）</li>
+            <li>無音 <strong>0.3〜1.5秒</strong> → 末尾0.3秒のみ残して短縮</li>
+            <li>無音 <strong>1.5秒以上</strong> → 削除</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 実行 -->
+      <section class="section section-action">
+        <button class="btn-primary" id="run-btn" disabled>
+          <span id="btn-text">動画を選択してください</span>
+        </button>
+      </section>
+
+      <!-- 進捗 -->
+      <section class="section" id="progress-section" hidden>
+        <h2 class="section-title">処理進捗</h2>
+
+        <!-- ファイル情報バッジ -->
+        <div class="file-info-bar" id="file-info-bar">
+          <span class="file-info-name" id="info-filename"></span>
+          <span class="file-info-size" id="info-filesize"></span>
+        </div>
+
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="progress-meta">
+          <p class="progress-percent" id="progress-percent">0%</p>
+          <p class="elapsed-time" id="elapsed-time">経過: 0:00</p>
+        </div>
+        <p class="status-text" id="status-text">待機中...</p>
+      </section>
+
+      <!-- エラー -->
+      <section class="section" id="error-section" hidden>
+        <div class="error-box">
+          <p class="error-title">⚠️ エラーが発生しました</p>
+          <p class="error-message" id="error-message"></p>
+          <div class="error-actions">
+            <button class="btn-secondary" id="retry-btn">もう一度試す</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ダウンロード -->
+      <section class="section" id="download-section" hidden>
+        <div class="done-box">
+          <p class="done-title">✅ 処理完了！</p>
+          <div class="done-stats" id="done-stats"></div>
+          <a class="btn-download" id="download-link" href="#">
+            ダウンロード
+          </a>
+          <p class="done-note">※ 入力ファイルは30分後に自動削除されます</p>
+          <button class="btn-secondary" id="reset-btn">新しい動画を処理する</button>
+        </div>
+      </section>
+
+    </div><!-- /card -->
+  </main>
+
+  <!-- トースト通知 -->
+  <div class="toast" id="toast" hidden></div>
+
+  <footer class="footer">
+    <p>Auto Editor v1.0 — ローカル専用・外部API不使用</p>
+  </footer>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>

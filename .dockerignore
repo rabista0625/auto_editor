@@ -1,0 +1,19 @@
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 処理ファイル（実行時に生成されるもの）
+input/
+output/
+temp/
+logs/
+
+# 開発用ファイル
+.env
+*.bat
+README.md
+.git/
+.gitignore

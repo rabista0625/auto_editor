@@ -1,0 +1,30 @@
+services:
+  auto-editor:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # ダウンロード済み動画とログをホスト側に保存する
+      - ./output:/app/output
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+    # --------------------------------------------------------------------------
+    # GPU（NVIDIA NVENC）を使う場合は以下のコメントを外す
+    #
+    # 事前準備（Windows の場合）:
+    #   1. NVIDIA ドライバーを最新にする
+    #   2. Docker Desktop の設定で「Use the WSL 2 based engine」を有効にする
+    #   3. WSL2 ターミナルで以下を実行:
+    #      curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    #      curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    #      sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+    #   4. Docker Desktop を再起動
+    # --------------------------------------------------------------------------
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [video, compute, utility]
