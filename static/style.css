@@ -430,6 +430,17 @@ body {
   color: var(--color-text-muted);
   opacity: 0.7;
 }
+.done-note.expiry-expired {
+  color: var(--color-warning);
+  opacity: 1;
+  font-weight: 500;
+}
+.btn-download-expired {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: var(--color-text-muted) !important;
+}
 
 /* --- Mode C 固定ルール説明 --- */
 .mode-c-note {

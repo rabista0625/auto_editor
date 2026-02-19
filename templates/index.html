@@ -162,7 +162,9 @@
           <a class="btn-download" id="download-link" href="#">
             ダウンロード
           </a>
-          <p class="done-note">※ 入力ファイルは30分後に自動削除されます</p>
+          <p class="done-note" id="expiry-note">
+            ⏱ 出力ファイルは処理完了から <strong>1時間後</strong> に自動削除されます（残り <span id="expiry-countdown">60:00</span>）
+          </p>
           <button class="btn-secondary" id="reset-btn">新しい動画を処理する</button>
         </div>
       </section>

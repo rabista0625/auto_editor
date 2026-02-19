@@ -34,10 +34,16 @@ const doneStats       = document.getElementById("done-stats");
 const resetBtn        = document.getElementById("reset-btn");
 
 const toastEl         = document.getElementById("toast");
+const expiryNote      = document.getElementById("expiry-note");
+const expiryCountdown = document.getElementById("expiry-countdown");
 
-let pollTimer    = null;
-let elapsedTimer = null;
-let startTime    = null;
+let pollTimer          = null;
+let elapsedTimer       = null;
+let startTime          = null;
+let expiryTimer        = null;
+let expiryCountdownTimer = null;
+
+const FILE_EXPIRY_MS = 60 * 60 * 1000; // 出力ファイルの有効期限（1時間）
 
 // ---------------------------------------------------------------------------
 // ファイル選択
@@ -211,10 +217,18 @@ function _showDownload(jobId) {
     `ファイル: <strong>${infoFilename.textContent}</strong> (${infoFilesize.textContent})<br>` +
     `処理時間: <strong>${elapsed}</strong>`;
 
+  // ダウンロードボタンをリセット（リトライ時のために）
   downloadLink.href = `/download/${jobId}`;
+  downloadLink.textContent = "ダウンロード";
+  downloadLink.classList.remove("btn-download-expired");
+
+  expiryNote.innerHTML =
+    `⏱ 出力ファイルは処理完了から <strong>1時間後</strong> に自動削除されます（残り <span id="expiry-countdown">60:00</span>）`;
+
   _showSection("download");
   _setProcessing(false);
   _showToast("処理が完了しました！", "success");
+  _startExpiryCountdown();
 }
 
 function _showError(message) {
@@ -257,6 +271,49 @@ function _showToast(message, type = "info") {
 }
 
 // ---------------------------------------------------------------------------
+// 出力ファイル有効期限カウントダウン
+// ---------------------------------------------------------------------------
+
+function _startExpiryCountdown() {
+  _stopExpiryCountdown();
+  const endTime = Date.now() + FILE_EXPIRY_MS;
+
+  expiryCountdownTimer = setInterval(() => {
+    const remaining = endTime - Date.now();
+    const el = document.getElementById("expiry-countdown");
+    if (!el) return;
+    if (remaining <= 0) {
+      _onFileExpired();
+    } else {
+      const mins = Math.floor(remaining / 60000);
+      const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0");
+      el.textContent = `${mins}:${secs}`;
+    }
+  }, 1000);
+
+  expiryTimer = setTimeout(_onFileExpired, FILE_EXPIRY_MS);
+}
+
+function _stopExpiryCountdown() {
+  clearInterval(expiryCountdownTimer);
+  clearTimeout(expiryTimer);
+  expiryCountdownTimer = null;
+  expiryTimer = null;
+}
+
+function _onFileExpired() {
+  _stopExpiryCountdown();
+  // ダウンロードボタンを無効化
+  downloadLink.removeAttribute("href");
+  downloadLink.textContent = "ダウンロード（期限切れ）";
+  downloadLink.classList.add("btn-download-expired");
+  // メッセージを期限切れ表示に変更
+  expiryNote.innerHTML =
+    "⏰ 出力ファイルは自動削除されました。再度アップロードして処理してください。";
+  expiryNote.classList.add("expiry-expired");
+}
+
+// ---------------------------------------------------------------------------
 // リセット / リトライ
 // ---------------------------------------------------------------------------
 
@@ -266,6 +323,7 @@ retryBtn.addEventListener("click", _resetUI);
 function _resetUI() {
   _stopPolling();
   _stopElapsedTimer();
+  _stopExpiryCountdown();
   _showSection("none");
   _setProcessing(false);
   fileInput.value = "";
